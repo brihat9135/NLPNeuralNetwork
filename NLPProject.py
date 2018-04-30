@@ -11,8 +11,8 @@ from keras.preprocessing.text import Tokenizer
 from keras.preprocessing.sequence import pad_sequences
 from sklearn.model_selection import train_test_split
 from keras.layers.embeddings import Embedding
-from keras.layers import Flatten
 from keras.layers import Dense
+from keras.layers import Dropout
 from keras.layers import Conv1D
 from keras.layers import MaxPooling1D
 from keras.layers import GlobalMaxPooling1D
@@ -44,16 +44,27 @@ class ProcessData:
 
 
     def processText(self, listCUIs, label, MAXLEN):
-        tokenizer = Tokenizer()
-        tokenizer.fit_on_texts(listCUIs)
-        sequences = tokenizer.texts_to_sequences(listCUIs)
-        word_index = tokenizer.word_index
-        data = pad_sequences(sequences)
-        a = len(word_index)
-        X_train1, X_test, y_train1, y_test = train_test_split(data, label, test_size = 0.15, random_state=42)
-        X_train, X_val, y_train, y_val = train_test_split(X_train1, y_train1, test_size = 0.15, random_state=42)
-        return X_train, y_train, X_val, y_val, X_test, y_test, a  
         
+        X_train1, X_test, y_train1, y_test = train_test_split(listCUIs, label, test_size = 0.15, random_state=42)
+        X_train, X_val, y_train, y_val = train_test_split(X_train1, y_train1, test_size = 0.15, random_state=42)
+        tokenizer = Tokenizer(oov_token='UNK', lower = False)
+       # print(X_train)
+        #print(X_train)
+        tokenizer.fit_on_texts(X_train)
+        sequences = tokenizer.texts_to_sequences(X_train)
+        word_index = tokenizer.word_index
+        #print(word_index)
+        X_train = pad_sequences(sequences, maxlen = MAXLEN)
+        a = len(word_index)
+        sequences_val = tokenizer.texts_to_sequences(X_val)
+        X_val = pad_sequences(sequences_val, maxlen = MAXLEN)
+        sequences_test = tokenizer.texts_to_sequences(X_test)
+        X_test = pad_sequences(sequences_test, maxlen = MAXLEN)
+        print(a)
+        print(X_train.shape)
+        return X_train, y_train, X_val, y_val, X_test, y_test, a 
+    
+    
      
     def getInitialVariables(self, listCUIs):
         CUIsLength = []
@@ -79,13 +90,16 @@ if __name__ == "__main__":
     PD = ProcessData()
     patientL = PD.readintoDF("patientLabel.txt")
     patientL = patientL.head(150)
-    print(patientL)
+    #print(patientL)
     
     fullData_df, listCUIs, label = PD.readyData(patientL, "Data/")
     
     Maxlen, vocabSize = PD.getInitialVariables(listCUIs)
+    print("vocabSize: " + str(vocabSize))
+    print("Maxlen:" + str(Maxlen))
 
     X_train, y_train, X_val, y_val, X_test, y_test, vocab_size = PD.processText(listCUIs, label, Maxlen)
+    print("a: " + str(vocab_size))
     
     e = PD.getEmbeddedLayer(vocab_size, Maxlen)
     model = Sequential()
@@ -95,26 +109,30 @@ if __name__ == "__main__":
     #model.add(Dense(6, activation = 'relu'))
     #model.add(Dense(3, activation = 'relu'))
     #model.add(Dense(1, activation='sigmoid'))
-    model.add(Conv1D(32, 7, activation = 'relu'))
+    model.add(Conv1D(100, 10, activation = 'relu'))
     model.add(MaxPooling1D(5))
-    model.add(Conv1D(32, 7, activation = 'relu'))
+    #model.add(Dropout(0.5))
+    model.add(Conv1D(50, 10, activation = 'relu'))
     model.add(GlobalMaxPooling1D())
-    model.add(Dense(1, activation = 'sigmoid'))
+    model.add(Dense(1, activation = 'sigmoid', bias_regularizer= 'l2'))
     model.summary()
     model.compile(optimizer ='rmsprop', loss = 'binary_crossentropy', metrics=['acc'])
+    #model.compile(optimizer ='sgd', loss = 'binary_crossentropy', metrics=['acc'])
+    #model.compile(optimizer ='adam', loss = 'binary_crossentropy', metrics=['acc'])
     #print("reached here")
-    x = model.fit(np.array(X_train), np.array(y_train), epochs=18, batch_size = 15, validation_data = (np.array(X_val), np.array(y_val)))
+    print(X_train.shape)
+    x = model.fit(np.array(X_train), np.array(y_train), epochs=3, batch_size = 1, validation_data = (np.array(X_val), np.array(y_val)))
     
-    prediction = model.predict_classes(np.array(X_test))
-    print(y_test)
-    print(prediction)
-    accuracy = accuracy_score(y_test, prediction)
+    prediction = model.predict_classes(np.array(X_test), batch_size = 1)
+    #print(y_test)
+    #print(prediction)
+    accuracy = accuracy_score(np.array(y_test), prediction)
     print(accuracy)
     
-    
+    """
     import matplotlib.pyplot as plt
-    loss = model.model['loss']
-    val_loss = model.model['val_loss']
+    loss = x.history['loss']
+    val_loss = x.history['val_loss']
     epochs = range(1, len(loss) + 1)
     plt.plot(epochs, loss, 'bo', label='Training loss')
     plt.plot(epochs, val_loss, 'b', label = 'Validation loss')
@@ -125,8 +143,8 @@ if __name__ == "__main__":
     plt.show()
     
     plt.clf()
-    acc = model.model['acc']
-    val_acc = model.model['val_acc']
+    acc = x.history['acc']
+    val_acc = x.history['val_acc']
     
     plt.plot(epochs, acc, 'bo', label='Training acc')
     plt.plot(epochs, val_acc, 'b', label = 'Validation acc')
@@ -135,7 +153,7 @@ if __name__ == "__main__":
     plt.ylabel('Acc')
     plt.legend()
     plt.show()
-
+    """
     
     
     
