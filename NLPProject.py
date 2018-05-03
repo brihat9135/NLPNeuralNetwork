@@ -18,6 +18,7 @@ from keras.layers import MaxPooling1D
 from keras.layers import GlobalMaxPooling1D
 from sklearn.metrics import accuracy_score
 import numpy as np
+from sklearn.metrics import confusion_matrix
 
 class ProcessData:
     
@@ -89,8 +90,8 @@ if __name__ == "__main__":
     
     PD = ProcessData()
     patientL = PD.readintoDF("patientLabel.txt")
-    patientL = patientL.head(150)
-    #print(patientL)
+    #patientL = patientL.head(100)
+    print(patientL)
     
     fullData_df, listCUIs, label = PD.readyData(patientL, "Data/")
     
@@ -121,13 +122,14 @@ if __name__ == "__main__":
     #model.compile(optimizer ='adam', loss = 'binary_crossentropy', metrics=['acc'])
     #print("reached here")
     print(X_train.shape)
-    x = model.fit(np.array(X_train), np.array(y_train), epochs=3, batch_size = 1, validation_data = (np.array(X_val), np.array(y_val)))
+    x = model.fit(np.array(X_train), np.array(y_train), epochs=1, batch_size = 1, validation_data = (np.array(X_val), np.array(y_val)))
     
     prediction = model.predict_classes(np.array(X_test), batch_size = 1)
     #print(y_test)
     #print(prediction)
     accuracy = accuracy_score(np.array(y_test), prediction)
     print(accuracy)
+    print(confusion_matrix(y_test, prediction))
     
     """
     import matplotlib.pyplot as plt
@@ -153,6 +155,7 @@ if __name__ == "__main__":
     plt.ylabel('Acc')
     plt.legend()
     plt.show()
+    
     """
     
     
