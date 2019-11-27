@@ -19,6 +19,7 @@ from keras.layers import GlobalMaxPooling1D
 from sklearn.metrics import accuracy_score
 import numpy as np
 from sklearn.metrics import confusion_matrix
+from keras import optimizers
 
 class ProcessData:
     
@@ -110,19 +111,22 @@ if __name__ == "__main__":
     #model.add(Dense(6, activation = 'relu'))
     #model.add(Dense(3, activation = 'relu'))
     #model.add(Dense(1, activation='sigmoid'))
-    model.add(Conv1D(100, 10, activation = 'relu'))
-    model.add(MaxPooling1D(5))
+    model.add(Conv1D(1024, 1, activation = 'relu'))
+    #model.add(MaxPooling1D(5))
     #model.add(Dropout(0.5))
-    model.add(Conv1D(50, 10, activation = 'relu'))
+    #model.add(Conv1D(50, 10, activation = 'relu'))
     model.add(GlobalMaxPooling1D())
+    model.add(Dense(1024, activation = 'sigmoid', bias_regularizer= 'l2'))
+    model.add(Dropout(0.5))
     model.add(Dense(1, activation = 'sigmoid', bias_regularizer= 'l2'))
     model.summary()
-    model.compile(optimizer ='rmsprop', loss = 'binary_crossentropy', metrics=['acc'])
+    adam = optimizers.Adam(lr=0.0001)
+    model.compile(optimizer = adam, loss = 'binary_crossentropy', metrics=['acc'])
     #model.compile(optimizer ='sgd', loss = 'binary_crossentropy', metrics=['acc'])
     #model.compile(optimizer ='adam', loss = 'binary_crossentropy', metrics=['acc'])
     #print("reached here")
     print(X_train.shape)
-    x = model.fit(np.array(X_train), np.array(y_train), epochs=1, batch_size = 1, validation_data = (np.array(X_val), np.array(y_val)))
+    x = model.fit(np.array(X_train), np.array(y_train), epochs=20, batch_size = 1, validation_data = (np.array(X_val), np.array(y_val)))
     
     prediction = model.predict_classes(np.array(X_test), batch_size = 1)
     #print(y_test)
